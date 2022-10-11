@@ -53,6 +53,7 @@
                                 <th scope="col">Patient Name</th>
                                 <th scope="col">Disease Name</th>
                                 <th scope="col">Pincode</th>
+                                <th scope="col">Mobile</th>
                                 <th scope="col">Date</th>
                                 <th scope="col">Opertations</th>
                             </tr>
@@ -64,6 +65,7 @@
                                 <td>{{x.patient}}</td>
                                 <td>{{x.disease}}</td>
                                 <td>{{x.pincode}}</td>
+                                <td>{{x.mobile}}</td>
                                 <td>{{x.date|date:"d M Y"}}</td>
                                 <td><a href="delete/{{x.pk}}"><i class="fas fa-trash-alt text-danger px-1"></i></a> <a href="edit/{{x.pk}}"><i class="fas fa-pencil-alt text-dark px-1"></i></a></td>
                             </tr>
