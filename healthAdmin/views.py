@@ -29,6 +29,14 @@ def sendemail(subject,remail, message):
     server.login(sender_email, password)
     server.sendmail(sender_email,rec_email,msg.as_string())
     return(1)
+# -------------------- SMS Code --------------------
+def sendSMS(numbers, message):
+    account_sid = 'AC0d37e654ec5d77d11ecce07755a51eca'
+    auth_token = '4ab4224ca1c716156f8e8695d6eb4635'
+    client = Client(account_sid, auth_token)
+
+    client.messages.create(from_='+14343255160',body=message,to="+91"+numbers)
+    return(1)
 
 # -------------------- Login Code --------------------
 def login(request):
@@ -83,17 +91,43 @@ def diseaseInfo(request, disease):
     else:
         return HttpResponse("<h1>400</h1>Bad Request. Requested data does not exists")
 
+def sendPincodeSMS(request,pincode,disease):
+    if 'id' not in request.session or 'type' not in request.session or request.session['type']!='admin':
+        return redirect('/')
+    
+    global serverIP
+    data = Patient.objects.raw("SELECT `id`,`name`,`mobile` FROM `healthadmin_patient` WHERE `pincode`=" + pincode)
+    message = "Aapke area me " + disease + " ki bimari fail rahi hai. Krupiya apne parivaar ka khayal rkhe. Zyada info k liye visit kare http://" + serverIP + "/info/" + disease
+    for x in data:
+        pass
+        #sendSMS(x.mobile, message)
+    return redirect("/dashboard/")
+
 def sendPincodeEmail(request,pincode,disease):
     if 'id' not in request.session or 'type' not in request.session or request.session['type']!='admin':
         return redirect('/')
     
     global serverIP
-    data = Patient.objects.raw("SELECT `id`,`email`,`name` FROM `healthadmin_patient` WHERE `pincode`=" + pincode)
+    data = Patient.objects.raw("SELECT `id`,`email`,`name`,`mobile` FROM `healthadmin_patient` WHERE `pincode`=" + pincode)
     message = "Aapke area me " + disease + " ki bimari fail rahi hai. Krupiya apne parivaar ka khayal rkhe. Zyada info k liye visit kare http://" + serverIP + "/info/" + disease
     for x in data:
         pass
         subject="Disease Spreading in your Area"
         sendemail(subject,x.email,message)
+    return redirect("/dashboard/")
+
+def sendSMStoAll(request):
+    if 'id' not in request.session or 'type' not in request.session or request.session['type']!='admin':
+        return redirect('/')
+    
+    global serverIP
+    data = Patient.objects.raw("SELECT x.id, x.pincode,x.name,MAX(x.count) AS `maxCount` FROM (SELECT c.id, d.name,p.pincode, count(p.id) as `count` FROM `healthadmin_patient` p, `healthadmin_disease` d, `healthadmin_consultation` c WHERE c.patient = p.id AND c.disease = d.id AND c.date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) GROUP BY p.pincode, d.name) AS x GROUP BY x.pincode")
+    for x in data:
+        data2 = Patient.objects.raw("SELECT `id`,`name`,`mobile`,`email`,`pincode`  FROM `healthadmin_patient` WHERE `pincode`=" + str(x.pincode))
+        message = "Aapke area me " + x.name + " ki bimari fail rahi hai. Krupiya apne parivaar ka khayal rkhe. Zyada info k liye visit kare http://" + serverIP + "/info/" + x.name 
+        for y in data2:
+            pass
+            #sendSMS(y.mobile, message)
     return redirect("/dashboard/")
 
 def sendEmailtoAll(request):
@@ -103,7 +137,7 @@ def sendEmailtoAll(request):
     global serverIP
     data = Patient.objects.raw("SELECT x.id, x.pincode,x.name,MAX(x.count) AS `maxCount` FROM (SELECT c.id, d.name,p.pincode, count(p.id) as `count` FROM `healthadmin_patient` p, `healthadmin_disease` d, `healthadmin_consultation` c WHERE c.patient = p.id AND c.disease = d.id AND c.date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) GROUP BY p.pincode, d.name) AS x GROUP BY x.pincode")
     for x in data:
-        data2 = Patient.objects.raw("SELECT `id`,`name`,`email`,`pincode`  FROM `healthadmin_patient` WHERE `pincode`=" + str(x.pincode))
+        data2 = Patient.objects.raw("SELECT `id`,`name`,`mobile`,`email`,`pincode`  FROM `healthadmin_patient` WHERE `pincode`=" + str(x.pincode))
         message = "Aapke area me " + x.name + " ki bimari fail rahi hai. Krupiya apne parivaar ka khayal rkhe. Zyada info k liye visit kare http://" + serverIP + "/info/" + x.name 
         for y in data2:
             pass
@@ -142,10 +176,11 @@ def clinic(request):
         doctorqualification = request.POST.get("doctorqualification","")
         address = request.POST.get("address","")
         zipcode = request.POST.get("zipcode","")
+        phone = request.POST.get("phone","")
         email = request.POST.get("email","")
         password = request.POST.get("password","")
-        data=" Health Alert | Clinic Resgistration\n Your Clinic is Succesfully registered \n Your Details:\n Clinic Name: "+name+"\n Doctor Name: "+doctorname+"\n Doctor Qualification: "+doctorqualification+"\n Clinic address: "+address+"\n Clinic Zipcode: "+zipcode+"\n Email: "+email+"\n Password: "+password+"\n Visit our website to login: http://"+serverIP+" \n Thank you|Team Health Alert...... "
-        Clinic(name = name, doctorname = doctorname, doctorqualification = doctorqualification, address = address, zipcode = zipcode, email = email, password = password).save()
+        data=" Health Alert | Clinic Resgistration\n Your Clinic is Succesfully registered \n Your Details:\n Clinic Name: "+name+"\n Doctor Name: "+doctorname+"\n Doctor Qualification: "+doctorqualification+"\n Clinic address: "+address+"\n Clinic Zipcode: "+zipcode+"\n Clinic Phone No.: "+phone+"\n Email: "+email+"\n Password: "+password+"\n Visit our website to login: http://"+serverIP+" \n Thank you|Team Health Alert...... "
+        Clinic(name = name, doctorname = doctorname, doctorqualification = doctorqualification, address = address, zipcode = zipcode, phone = phone, email = email, password = password).save()
         saveSuccess = True
         subject="Clinic Registration"
         sendemail(subject,email,data)
@@ -164,6 +199,7 @@ def editClinic(request, id):
         doctorqualification = request.POST.get("doctorqualification","")
         address = request.POST.get("address","")
         zipcode = request.POST.get("zipcode","")
+        phone = request.POST.get("phone","")
         email = request.POST.get("email","")
         password = request.POST.get("password","")
 
@@ -174,9 +210,10 @@ def editClinic(request, id):
         data.address = address
         data.zipcode = zipcode
         data.email = email
+        data.phone = phone
         data.password = password
         data.save()
-        message=" Health Alert | Clinic Updation\n Your Clinic data is Updated \n Your Details:\n Clinic Name: "+name+"\n Doctor Name: "+doctorname+"\n Doctor Qualification: "+doctorqualification+"\n Clinic address: "+address+"\n Clinic Zipcode: "+zipcode+"\n Email: "+email+"\n Password: "+password+"\n Visit our website to login: http://"+serverIP+" \n Thank you|Team Health Alert...... "
+        message=" Health Alert | Clinic Updation\n Your Clinic data is Updated \n Your Details:\n Clinic Name: "+name+"\n Doctor Name: "+doctorname+"\n Doctor Qualification: "+doctorqualification+"\n Clinic address: "+address+"\n Clinic Zipcode: "+zipcode+"\n Clinic Phone No.: "+phone+"\n Email: "+email+"\n Password: "+password+"\n Visit our website to login: http://"+serverIP+" \n Thank you|Team Health Alert...... "
         subject="Clinic Updation"
         sendemail(subject,email,message)
         return redirect('/clinic/')
@@ -297,11 +334,12 @@ def patients(request):
     
     if request.method=="POST":
         name = request.POST.get("name","")
+        mobile = request.POST.get("mobile","")
         address = request.POST.get("address","")
         email = request.POST.get("email","")
         pincode = request.POST.get("pincode","")
 
-        Patient(name = name, address = address, email = email ,pincode = pincode, clinicID = request.session['id']).save()
+        Patient(name = name, mobile=mobile, address = address, email = email ,pincode = pincode, clinicID = request.session['id']).save()
         saveSuccess = True
     else:
         saveSuccess = False
@@ -315,12 +353,14 @@ def editPatients(request, id):
     
     if request.method=="POST":
         name = request.POST.get("name","")
+        mobile = request.POST.get("mobile","")
         address = request.POST.get("address","")
         email = request.POST.get("email","")
         pincode = request.POST.get("pincode","")
 
         data = Patient.objects.get(pk=id)
         data.name = name
+        data.mobile = mobile
         data.address = address
         data.email = email
         data.pincode = pincode
@@ -353,7 +393,7 @@ def consultation(request):
     else:
         saveSuccess = False
     
-    data = Consultation.objects.raw("SELECT c.id,p.name as patient,p.pincode,d.name as disease FROM `healthAdmin_consultation` c, `healthAdmin_patient` p, `healthAdmin_disease` d WHERE c.patient = p.id AND c.disease = d.id AND c.clinicID = '" + request.session['id'] + "'")
+    data = Consultation.objects.raw("SELECT c.id,p.name as patient,p.mobile,p.pincode,d.name as disease FROM `healthAdmin_consultation` c, `healthAdmin_patient` p, `healthAdmin_disease` d WHERE c.patient = p.id AND c.disease = d.id AND c.clinicID = '" + request.session['id'] + "'")
     patients = Patient.objects.filter(clinicID = request.session['id'])
     diseases = Disease.objects.all()
     return render(request, "consultation.html", {"saveSuccess":saveSuccess,"data":data,"patients":patients,"diseases":diseases})
@@ -392,6 +432,7 @@ def appointment(request,a,id):
     if request.method=="POST":
         ids = request.POST.get("ids","")
         name = request.POST.get("name","")
+        mobile = request.POST.get("phone","")
         pincode = request.POST.get("zipcode","")
         address = request.POST.get("address","")
         email = request.POST.get("email","")
@@ -401,19 +442,21 @@ def appointment(request,a,id):
             o2=request.POST.get("otp2","")
             if o1==o2:
                 data = Clinic.objects.raw("SELECT * FROM `healthadmin_clinic` WHERE `email`='"+ids+"'")
-                Patient(name = name, address = address, email = email, pincode = int(pincode), addDate = addDate, clinicID = ids).save()
+                Patient(name = name, mobile=mobile, address = address, email = email, pincode = int(pincode), addDate = addDate, clinicID = ids).save()
                 for y in data:
                     pass
                     message=" Health Alert | Appointment Booked\n Hello "+name+" \n Your Appointment is sucessfully booked on:"+addDate+" \n Clinic Name:"+y.name+" \n Clinic Address:"+y.address+"\n Thank you|Team Health Alert...... "
+                    #sendSMS(mobile, message)
                     subject="Appointment Booked"
                 sendemail(subject,email,message)
             return redirect("/info/"+a+"/")
 
         otp=str(np.random.randint(100000,999999))
         message=" Health Alert | OTP Verification\n Hello "+name+" \n Your OTP Verfication Code is:"+otp+" \n Thank you/Team Health Alert...... "
+        #sendSMS(mobile, message)
         subject="OTP Verification"
         sendemail(subject,email,message)
-        return render(request, "otpvalid.html", {"id":ids,"name":name,"pincode":pincode,"address":address,"email":email,"addDate":addDate, "otp":otp})
+        return render(request, "otpvalid.html", {"id":ids,"name":name,"mobile":mobile,"pincode":pincode,"address":address,"email":email,"addDate":addDate, "otp":otp})
     data = Clinic.objects.raw("SELECT * FROM `healthadmin_clinic` WHERE `id`="+id+"")
     return render(request, "appointment.html", {"data":data})
 
@@ -425,6 +468,7 @@ def paappointment(request,id):
     if request.method=="POST":
         ids = request.POST.get("ids","")
         name = request.POST.get("name","")
+        mobile = request.POST.get("phone","")
         pincode = request.POST.get("zipcode","")
         address = request.POST.get("address","")
         email = request.POST.get("email","")
@@ -434,19 +478,21 @@ def paappointment(request,id):
             o2=request.POST.get("otp2","")
             if o1==o2:
                 data = Clinic.objects.raw("SELECT * FROM `healthadmin_clinic` WHERE `email`='"+ids+"'")
-                Patient(name = name, address = address, email = email, pincode = int(pincode), addDate = addDate, clinicID = ids).save()
+                Patient(name = name, mobile=mobile, address = address, email = email, pincode = int(pincode), addDate = addDate, clinicID = ids).save()
                 for y in data:
                     pass
                     message=" Health Alert | Appointment Booked\n Hello "+name+" \n Your Appointment is sucessfully booked on:"+addDate+" \n Clinic Name:"+y.name+" \n Clinic Address:"+y.address+"\n Thank you|Team Health Alert...... "
+                    #sendSMS(mobile, message)
                     subject="Appointment Booked"
                 sendemail(subject,email,message)
             return redirect("/appointment/")
 
         otp=str(np.random.randint(100000,999999))
         message=" Health Alert | OTP Verification\n Hello "+name+" \n Your OTP Verfication Code is:"+otp+" \n Thank you/Team Health Alert...... "
+        #sendSMS(mobile, message)
         subject="OTP Verification"
         sendemail(subject,email,message)
-        return render(request, "otpvalid.html", {"id":ids,"name":name,"pincode":pincode,"address":address,"email":email,"addDate":addDate, "otp":otp})
+        return render(request, "otpvalid.html", {"id":ids,"name":name,"mobile":mobile,"pincode":pincode,"address":address,"email":email,"addDate":addDate, "otp":otp})
     data = Clinic.objects.raw("SELECT * FROM `healthadmin_clinic` WHERE `id`="+id+"")
     return render(request, "appointment.html", {"data":data})
 
@@ -456,12 +502,13 @@ def forgotpass(request):
     if request.method=="POST":
         designation = request.POST.get("designation","")
         email = request.POST.get("email","")
+        phone = request.POST.get("phone","")
         if request.POST.get("otp",""):
             o1=request.POST.get("otp","")
             o2=request.session['otp']
             if o1==o2:
                 if designation=="clinic":
-                    data = Clinic.objects.raw("SELECT * FROM `healthadmin_clinic` WHERE `email`='"+email+"'")
+                    data = Clinic.objects.raw("SELECT * FROM `healthadmin_clinic` WHERE `email`='"+email+"' AND `phone`='"+phone+"'")
                 elif designation=="admin":
                     data = AdminUser.objects.raw("SELECT * FROM `healthadmin_adminuser` WHERE `email`='"+email+"'")
                 for y in data:
@@ -469,10 +516,11 @@ def forgotpass(request):
                     message=" Health Alert | Forgot Password\n Hello "+y.name+" \n Designation: "+designation+" \n Username: "+y.email+" \n Password: "+y.password+" \n Thank you|Team Health Alert...... "
                     subject="Forgot Password"
                     sendemail(subject,email,message)
+                    #sendSMS(mobile, message)
                     del request.session['otp']
                     return redirect("/")
         if designation=="clinic":
-            data = Clinic.objects.filter(Q(email=email))
+            data = Clinic.objects.filter(Q(email=email) & Q(phone=phone))
         elif designation=="admin":
             data = AdminUser.objects.filter(Q(email=email))
         if data.count()>=1:
@@ -481,8 +529,9 @@ def forgotpass(request):
             message=" Health Alert | OTP Verification \n Your OTP Verfication Code is:"+otp+" \n Thank you/Team Health Alert...... "
             subject="Forgot Password"
             sendemail(subject,email,message)
+            #sendSMS(mobile, message)
             request.session['otp'] = otp
-            return render(request, "otpforgot.html", {"designation":designation,"email":email})
+            return render(request, "otpforgot.html", {"designation":designation,"email":email,"phone":phone})
         else:
             loginError=True
             return render(request, "forgotpass.html", {"loginError":loginError})
