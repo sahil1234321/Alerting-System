@@ -1,0 +1,42 @@
+{% extends 'main1.html' %}
+{% block href %}/appointment/ {% endblock %}
+{% block btn %}Book Appointment {% endblock %}
+{% block title %} Appointment | Health Alert Application {% endblock %}
+
+{% block content %}
+                <div class="col-12 bg-white">
+                    <div class="container-fluid main">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card shadow p-3 m-3">
+
+                                    <h2 class="text-center text-danger">OTP Validation</h2>
+                                    <h5 class="text-center text-danger">Check your email to check OTP</h5>
+                                    <form method="POST"> {% csrf_token %}
+                                        <div class="form-row">
+                                            <input type="hidden" name="ids" id="ids" value="{{id}}">
+                                            <input type="hidden" name="name" id="name" value="{{name}}">
+                                            <input type="hidden" name="zipcode" id="pincode" value="{{pincode}}">
+                                            <input type="hidden" name="address" id="address" value="{{address}}">
+                                            <input type="hidden" name="email" id="email" value="{{email}}">
+                                            <input type="hidden" name="date" id="date" value="{{addDate}}">
+                                            <input type="hidden" name="otp2" id="otp2" value="{{otp}}">
+                                            <div class="form-group col-md-4"></div>
+                                            <div class="form-group col-md-4">
+                                                <label for="OTP">OTP</label>
+                                                <input type="number" class="form-control" name="otp" id="otp"   
+                                                    placeholder="Enter OTP" required>
+                                            </div>
+                                            <div class="form-group col-md-4"></div>
+                                            <div class="form-group col-md-4"></div>
+                                            <div class="form-group col-md-4 text-center" >
+                                            <button type="submit" class="btn btn-danger">Submit</button></div>
+                                        </div>
+                                    </form>
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+{% endblock %}

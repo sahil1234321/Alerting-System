@@ -1,0 +1,48 @@
+{% extends 'main1.html' %}
+{% block href %}/ {% endblock %}
+{% block btn %}Login {% endblock %}
+{% block title %} Appointment | Health Alert Application {% endblock %}
+
+{% block content %}
+<div class="col-12 bg-white">
+    <div class="container-fluid main">
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow p-3 m-3">
+
+                    <h2 class="text-center text-danger">Forgot Password</h2>
+                    <form method="POST"> {% csrf_token %}
+                        {% if loginError == True %}
+                            <div class="alert alert-danger alert-dismissible">
+                                <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                                <strong>Error!</strong> Incorrect Email
+                            </div>
+                            {% endif %}
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
+                                <label for="designation">Your Designation</label>
+                                <select id="designation" name="designation" class="form-control" required>
+                                    <option selected>Choose...</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="clinic">Clinic</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="email">Email</label>
+                                <input type="email" class="form-control" name="email" id="email"   
+                                    placeholder="Enter Email" required>
+                            </div>
+                            
+                            <div class="form-group col-md-4"></div>
+                            <div class="form-group col-md-4 text-center">
+                            <button type="submit" class="btn btn-danger ">Submit</button></div>
+                        </div>
+                    </form>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+        
