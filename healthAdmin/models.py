@@ -20,6 +20,7 @@ class Clinic(models.Model):
     doctorqualification = models.CharField(max_length=100)
     address = models.CharField(max_length=200)
     zipcode = models.IntegerField(default=0)
+    phone = models.CharField(max_length=100)
     email = models.CharField(max_length=100)
     password = models.CharField(max_length=100)
 
@@ -39,6 +40,7 @@ class Disease(models.Model):
 class Patient(models.Model):
     patient_id = models.AutoField
     name = models.CharField(max_length=100)
+    mobile = models.CharField(max_length=100)
     pincode = models.IntegerField(default=0)
     address = models.CharField(max_length=30)
     email = models.CharField(max_length=100)
